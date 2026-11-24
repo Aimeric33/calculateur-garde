@@ -1,0 +1,10 @@
+{
+  // Doit correspondre au nom du Worker dans le dashboard Cloudflare
+  "name": "calculateur-ass-mat",
+  "compatibility_date": "2026-11-24",
+  // Site 100 % statique : on sert le dossier généré par `next build` (output: 'export')
+  "assets": {
+    "directory": "./out",
+    "not_found_handling": "404-page"
+  }
+}
