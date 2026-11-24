@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { EXAMPLE, buildParams, eur, num, simulate } from '@/lib/engine';
-import { SITE } from '@/lib/site';
 
 // Exemple calculé au moment de la construction du site avec le même moteur que le simulateur.
 const P = buildParams(EXAMPLE);
@@ -27,8 +26,8 @@ export default function Home() {
       <section className="hero">
         <div className="in">
           <div>
-            <h1>Le salaire de votre assistante maternelle, mois par mois</h1>
-            <p className="lead">Entrez le contrat, le planning et les vacances. {SITE.name} calcule le salaire mensualisé, les congés payés, les heures majorées et ce qui sera dû en fin de contrat, avec le détail de chaque calcul.</p>
+            <h1>Le salaire de votre assistante maternelle, <em>mois par mois</em></h1>
+            <p className="lead">Entrez le contrat, le planning et les vacances. Salaire, congés payés et fin de contrat sont calculés et expliqués.</p>
             <div className="ctas">
               <Link href="/simulateur/" className="btn primary big">Faire une simulation</Link>
             </div>
@@ -60,7 +59,7 @@ export default function Home() {
         <ol className="steps">
           {STEPS.map((s) => <li key={s.t}><h3>{s.t}</h3><p>{s.d}</p></li>)}
         </ol>
-        <p className="note">Gratuit et sans inscription. Vos paramètres restent dans votre navigateur : rien n&apos;est envoyé ni enregistré sur un serveur. Les calculs suivent la convention collective des particuliers employeurs (IDCC 3239) et restent indicatifs : pour un cas particulier, demandez confirmation au Relais Petite Enfance ou à Pajemploi.</p>
+        <p className="trust"><b>Gratuit, sans inscription, et vos données restent chez vous.</b>Vos paramètres restent dans votre navigateur : rien n&apos;est envoyé ni enregistré sur un serveur. Les calculs suivent la convention collective des particuliers employeurs (IDCC 3239) et restent indicatifs : pour un cas particulier, demandez confirmation au Relais Petite Enfance ou à Pajemploi.</p>
       </section>
     </>
   );
