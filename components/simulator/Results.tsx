@@ -1,11 +1,50 @@
 'use client';
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   MOISL, cpPaidText, eur, fmtDate, fmtPeriod, num, sgn,
   type MonthRow, type Params, type SimResult,
 } from '@/lib/engine';
 
 const Det = ({ children }: { children: React.ReactNode }) => <span className="det">{children}</span>;
+
+/**
+ * Tableau défilant horizontalement, avec une seconde barre de défilement au-dessus.
+ * Les deux barres restent synchronisées ; celle du haut n'apparaît que si le tableau dépasse.
+ */
+function ScrollX({ children }: { children: React.ReactNode }) {
+  const top = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  const [overflow, setOverflow] = useState(false);
+  useEffect(() => {
+    const b = body.current;
+    if (!b) return;
+    // Largeur du contenu de la barre du haut : même course de défilement que le tableau
+    const measure = () => {
+      const t = top.current;
+      setWidth(b.scrollWidth - b.clientWidth + (t?.clientWidth || b.clientWidth));
+      setOverflow(b.scrollWidth > b.clientWidth + 1);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(b);
+    if (b.firstElementChild) ro.observe(b.firstElementChild);
+    if (top.current) ro.observe(top.current);
+    return () => ro.disconnect();
+  }, []);
+  // Chaque barre recopie la position de l'autre ; dès que les deux positions sont égales, plus rien ne bouge
+  const sync = (from: HTMLDivElement | null, to: HTMLDivElement | null) => {
+    if (from && to && Math.abs(to.scrollLeft - from.scrollLeft) >= 1) to.scrollLeft = from.scrollLeft;
+  };
+  return (
+    <div className="scrollx">
+      <div className="scrollx-top" ref={top} hidden={!overflow} aria-hidden="true" onScroll={() => sync(top.current, body.current)}>
+        <div style={{ width }} />
+      </div>
+      <div className="tablewrap" ref={body} onScroll={() => sync(body.current, top.current)}>{children}</div>
+    </div>
+  );
+}
 
 /* ---------- Cartes de synthèse ---------- */
 export function SummaryCards({ R }: { R: SimResult }) {
@@ -100,7 +139,7 @@ export function MonthTable({ R, P }: { R: SimResult; P: Params }) {
     </tr>,
   );
   return (
-    <div className="tablewrap">
+    <ScrollX>
       <table className="grid">
         <thead>
           <tr className="grp">
@@ -116,7 +155,7 @@ export function MonthTable({ R, P }: { R: SimResult; P: Params }) {
         </thead>
         <tbody>{body}</tbody>
       </table>
-    </div>
+    </ScrollX>
   );
 }
 
@@ -125,7 +164,7 @@ export function CpTable({ R, P }: { R: SimResult; P: Params }) {
   const C = R.F === 'C';
   const pc = R.rows.length ? R.rows[R.rows.length - 1].p : 0;
   return (
-    <div className="tablewrap">
+    <ScrollX>
       <table className="grid">
         <thead><tr><th>Période d&apos;acquisition</th><th className="n">Semaines retenues</th><th className="n">Jours acquis</th><th className="n">Maintien de salaire</th><th className="n">10 % des salaires</th><th className="n">Montant retenu</th><th>{C ? 'Comment ils sont payés' : 'Versement'}</th></tr></thead>
         <tbody>
@@ -145,7 +184,7 @@ export function CpTable({ R, P }: { R: SimResult; P: Params }) {
           )}
         </tbody>
       </table>
-    </div>
+    </ScrollX>
   );
 }
 
@@ -209,7 +248,7 @@ export default function Results({ R, P, onPrint }: { R: SimResult; P: Params; on
           <button key={k} type="button" className="tab" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
-        <button type="button" className="btn copper" onClick={onPrint}>Version imprimable</button>
+        <button type="button" className="btn copper" onClick={onPrint}>Imprimer ou enregistrer en PDF</button>
       </div>
       <div className="panes">
         {tab === 'mois' && (

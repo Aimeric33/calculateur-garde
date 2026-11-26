@@ -22,8 +22,6 @@ const LINKS = [
 
 export default function SiteHeader() {
   const path = usePathname() || '/';
-  const norm = (p: string) => (p.endsWith('/') ? p : p + '/');
-  const onSim = norm(path) === '/simulateur/';
   const [open, setOpen] = useState(false);
 
   // Fermeture du menu mobile : changement de page ou touche Échap
@@ -53,10 +51,10 @@ export default function SiteHeader() {
         <div className="menu" id="menu-principal">
           <nav className="nav" aria-label="Navigation principale">
             {LINKS.map((l) => (
-              <Link key={l.href} href={l.href} onClick={close} aria-current={norm(path) === l.href ? 'page' : undefined}>{l.label}</Link>
+              <Link key={l.href} href={l.href} onClick={close}>{l.label}</Link>
             ))}
           </nav>
-          {!onSim && <Link href="/simulateur/" className="btn primary big head-cta" onClick={close}>Faire une simulation</Link>}
+          <Link href="/simulateur/" className="btn primary big head-cta" onClick={close}>Faire une simulation</Link>
         </div>
       </div>
     </header>

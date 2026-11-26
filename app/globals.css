@@ -162,8 +162,7 @@ table.calc tr.win td{font-weight:600;color:var(--copper);border-bottom:none}
 /* ---------- Version imprimable ---------- */
 .viewbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .viewbar .hint{max-width:60ch}
-#printView{display:grid;gap:20px;justify-items:center}
-.sheetwrap{width:100%;overflow-x:auto}
+#printView{display:none}
 .sheet{width:297mm;min-height:200mm;margin:0 auto;background:#fff;color:#1b1f24;box-shadow:0 2px 14px rgba(0,0,0,.18);padding:10mm 9mm;
   font-family:var(--f-body);font-size:7.6pt;line-height:1.35;font-variant-numeric:tabular-nums}
 .sheet h1{font-family:var(--f-body);font-size:15pt;font-weight:700;margin:0 0 2mm;color:#1b1f24;text-wrap:balance}
@@ -199,7 +198,6 @@ table.calc tr.win td{font-weight:600;color:var(--copper);border-bottom:none}
   header.top,.layout,.viewbar,.site-header,.site-footer{display:none!important}
   main.page{padding:0!important}
   #printView{display:block!important}
-  .sheetwrap{overflow:visible}
   .sheet{width:auto;min-height:0;box-shadow:none;padding:0;margin:0}
 }
 
@@ -629,3 +627,9 @@ fieldset.field legend{padding:0;margin-bottom:2px}
 .btn.copper:hover{background:#a34f22;border-color:#a34f22}
 @media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.btn.copper:is(:hover,:focus-visible):not(:disabled){background:var(--copper)}}
 .tabbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+/* Seconde barre de défilement horizontale, au-dessus des tableaux larges */
+.scrollx{display:grid;gap:6px}
+.scrollx-top{overflow-x:auto;overflow-y:hidden;height:14px;border-radius:7px}
+.scrollx-top>div{height:1px}
+.scrollx-top,.tablewrap{scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
+@media print{.scrollx-top{display:none!important}}

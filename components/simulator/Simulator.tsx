@@ -20,7 +20,7 @@ function loadState(): FormState {
   return clone(EXAMPLE);
 }
 
-type View = { mode: 'form'; step: number } | { mode: 'results' } | { mode: 'print' };
+type View = { mode: 'form'; step: number } | { mode: 'results' };
 
 export default function Simulator() {
   const [s, setS] = useState<FormState>(() => clone(EXAMPLE));
@@ -67,6 +67,14 @@ export default function Simulator() {
     setDone(true);
     go({ mode: 'results' });
   };
+  // Ouvre la fenêtre d'impression du navigateur (aperçu, imprimante ou « Enregistrer au format PDF »).
+  // Le titre de la page sert de nom de fichier proposé pour le PDF.
+  const printSheet = () => {
+    const title = document.title;
+    document.title = 'Simulation salaire assistante maternelle';
+    window.addEventListener('afterprint', () => { document.title = title; }, { once: true });
+    window.print();
+  };
   const reset = () => {
     if (!window.confirm('Remplacer vos paramètres par ceux de l’exemple ?')) return;
     setS(clone(EXAMPLE)); setDone(false); go({ mode: 'form', step: 0 });
@@ -97,22 +105,16 @@ export default function Simulator() {
         <span className="eyebrow">Simulateur</span>
         <h1>Simulateur salaire <em>assistante maternelle</em></h1>
         {view.mode === 'form' && <p className="lead">Quatre étapes pour décrire le contrat, puis le salaire mois par mois. Les champs sont préremplis avec un exemple : remplacez-les par les informations de votre contrat.</p>}
-        {view.mode !== 'form' && (
+        {view.mode === 'results' && (
           <div className="viewbar">
-            {view.mode === 'results'
-              ? <>
-                  <button type="button" className="btn primary" onClick={() => go({ mode: 'form', step: 0 })}>Revenir à la première étape</button>
-                  <button type="button" className="btn" onClick={reset}>Recommencer avec l&apos;exemple</button>
-                </>
-              : <>
-                  <button type="button" className="btn" onClick={() => go({ mode: 'results' })}>Retour aux résultats</button>
-                  <button type="button" className="btn primary" onClick={() => window.print()}>Imprimer ou enregistrer en PDF</button>
-                </>}
+            <button type="button" className="btn primary" onClick={() => go({ mode: 'form', step: 0 })}>Revenir à la première étape</button>
+            <button type="button" className="btn" onClick={reset}>Recommencer avec l&apos;exemple</button>
           </div>
         )}
       </header>
 
-      {view.mode === 'print' && sims && <div id="printView"><div className="sheetwrap"><PrintSheet s={s} P={P} R={sims.R} /></div></div>}
+      {/* Feuille d'impression : invisible à l'écran, seule affichée quand on imprime (voir @media print) */}
+      {view.mode === 'results' && sims && <div id="printView" aria-hidden="true"><PrintSheet s={s} P={P} R={sims.R} /></div>}
 
       {view.mode === 'form' && (() => {
         const st = STEPS[view.step];
@@ -161,7 +163,7 @@ export default function Simulator() {
           <Recap s={s} onEdit={(k) => go({ mode: 'form', step: k })} />
           <section className="results" aria-live="polite">
             {A.alerts.length > 0 && <div className="alerts">{A.alerts.map((a) => <div className="alert" key={a.title}><b>{a.title}</b> {a.text}</div>)}</div>}
-            {sims && <Results R={sims.R} P={P} onPrint={() => go({ mode: 'print' })} />}
+            {sims && <Results R={sims.R} P={P} onPrint={printSheet} />}
             <footer>Simulation indicative, fondée sur la convention collective des particuliers employeurs (IDCC 3239). Les jours fériés chômés sont payés. Montants nets. Pour un cas particulier, demandez confirmation au Relais Petite Enfance ou à Pajemploi.</footer>
           </section>
         </div>
