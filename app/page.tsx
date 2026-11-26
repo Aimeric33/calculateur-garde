@@ -272,7 +272,7 @@ export default function Home() {
           <div className="faq-head">
             <span className="eyebrow">Questions</span>
             <h2>Les questions que <em>les parents posent.</em></h2>
-            <p>Une autre question ? Le Relais Petite Enfance de votre commune peut vous répondre.</p>
+            <p>Une autre question ? Le Relais Petite Enfance de votre commune peut vous répondre. Vous trouverez aussi des réponses sur le site de <a href="https://www.urssaf.fr/accueil/services/services-particuliers/service-pajemploi.html" target="_blank" rel="noopener noreferrer">Pajemploi</a>.</p>
             <Link href="/simulateur/" className="btn primary big">Faire une simulation</Link>
           </div>
           <Faq items={FAQ} />
