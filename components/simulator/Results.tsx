@@ -8,7 +8,7 @@ import {
 const Det = ({ children }: { children: React.ReactNode }) => <span className="det">{children}</span>;
 
 /* ---------- Cartes de synthèse ---------- */
-export function SummaryCards({ R, RO }: { R: SimResult; RO: SimResult }) {
+export function SummaryCards({ R }: { R: SimResult }) {
   const label = R.F === 'C' ? 'Année complète' : 'Année incomplète';
   const fin = R.iccp + R.reg + R.rupture;
   return (
@@ -34,7 +34,7 @@ export function SummaryCards({ R, RO }: { R: SimResult; RO: SimResult }) {
       </div>
       <div className="card">
         <span className="k">Total net du contrat</span><span className="v">{eur(R.grand)}</span>
-        <span className="d">{R.F === 'C' ? 'En année incomplète' : 'En année complète'} : {eur(RO.grand)} · hors entretien</span>
+        <span className="d">Salaires, congés payés et fin de contrat · hors entretien</span>
       </div>
     </div>
   );
@@ -51,25 +51,22 @@ function ExtraCell({ r }: { r: MonthRow }) {
   return <>{r.extraPay > 0.005 ? `+ ${eur(r.extraPay)}` : '—'}{r.extraLines.map((t) => <Det key={t}>{t}</Det>)}</>;
 }
 
-export function MonthTable({ R, RO, P, compare }: { R: SimResult; RO: SimResult; P: Params; compare: boolean }) {
+export function MonthTable({ R, P }: { R: SimResult; P: Params }) {
   const C = R.F === 'C';
-  const cls = C ? 'gc' : 'gi', tcls = C ? 'c' : 'i', ocls = C ? 'gi' : 'gc';
-  const diff = (a: number, b: number) => (R.F === 'I' ? a - b : b - a); // incomplète − complète
+  const cls = C ? 'gc' : 'gi', tcls = C ? 'c' : 'i';
   const body: React.ReactNode[] = [];
-  let cumO = 0, cumAcq = 0, curP: number | null = null;
-  let sub = { pay: 0, ent: 0, tot: 0, o: 0 };
+  let cumAcq = 0, curP: number | null = null;
+  let sub = { pay: 0, ent: 0, tot: 0 };
   const subRow = (p: number) => (
     <tr className="sub" key={`s${p}`}>
       <th colSpan={3}>Total {fmtPeriod(p, P.start, P.end)}</th>
       <td className="n" colSpan={4}>{num(cumAcq)} j{R.closed[p] ? ` → ${R.closed[p].days} j acquis` : ''}</td>
       <td colSpan={3}></td><td className="n">{eur(sub.pay)}</td><td className="n">{eur(sub.ent)}</td><td className="n">{eur(sub.tot)}</td>
-      {compare && <><td className="n">{eur(sub.o)}</td><td className="n">{sgn(cumO)}</td></>}
     </tr>
   );
   R.rows.forEach((r, i) => {
-    if (curP !== null && r.p !== curP) { body.push(subRow(curP)); sub = { pay: 0, ent: 0, tot: 0, o: 0 }; cumAcq = 0; }
+    if (curP !== null && r.p !== curP) { body.push(subRow(curP)); sub = { pay: 0, ent: 0, tot: 0 }; cumAcq = 0; }
     curP = r.p; cumAcq += r.acq;
-    const o = RO.rows[i]; cumO += diff(r.pay, o.pay);
     const ent = r.ent + r.meal, tot = r.pay + ent;
     body.push(
       <tr key={r.m0}>
@@ -83,29 +80,23 @@ export function MonthTable({ R, RO, P, compare }: { R: SimResult; RO: SimResult;
         <td className="n"><MiddleCell r={r} complete={C} /></td>
         <td className={`n b ${tcls}`}>{eur(r.pay)}</td>
         <td className="n">{eur(ent)}</td><td className="n">{eur(tot)}</td>
-        {compare && <><td className="n">{eur(o.pay)}</td><td className="n">{sgn(cumO)}</td></>}
       </tr>,
     );
-    sub.pay += r.pay; sub.ent += ent; sub.tot += tot; sub.o += o.pay;
+    sub.pay += r.pay; sub.ent += ent; sub.tot += tot;
   });
   if (curP !== null) body.push(subRow(curP));
-  const endRow = (t: string, v: number, ov: number) => {
-    if (compare) cumO += diff(v, ov);
-    return (
-      <tr className="end" key={t}>
-        <th colSpan={10}>{t}</th><td className={`n b ${tcls}`}>{eur(v)}</td><td></td><td className="n">{eur(v)}</td>
-        {compare && <><td className="n">{eur(ov)}</td><td className="n">{sgn(cumO)}</td></>}
-      </tr>
-    );
-  };
-  body.push(endRow('Fin de contrat · congés payés non pris', R.iccp, RO.iccp));
-  if (R.F === 'I' || compare) body.push(endRow('Fin de contrat · régularisation des heures', R.reg, RO.reg));
-  body.push(endRow('Fin de contrat · indemnité de rupture', R.rupture, RO.rupture));
+  const endRow = (t: string, v: number) => (
+    <tr className="end" key={t}>
+      <th colSpan={10}>{t}</th><td className={`n b ${tcls}`}>{eur(v)}</td><td></td><td className="n">{eur(v)}</td>
+    </tr>
+  );
+  body.push(endRow('Fin de contrat · congés payés non pris', R.iccp));
+  if (R.F === 'I') body.push(endRow('Fin de contrat · régularisation des heures', R.reg));
+  body.push(endRow('Fin de contrat · indemnité de rupture', R.rupture));
   const entTot = R.rows.reduce((a, r) => a + r.ent + r.meal, 0);
   body.push(
     <tr className="total" key="total">
       <th colSpan={10}>Total du contrat</th><td className="n">{eur(R.grand)}</td><td className="n">{eur(entTot)}</td><td className="n">{eur(R.grand + entTot)}</td>
-      {compare && <><td className="n">{eur(RO.grand)}</td><td className="n">{sgn(diff(R.grand, RO.grand))}</td></>}
     </tr>,
   );
   return (
@@ -115,14 +106,12 @@ export function MonthTable({ R, RO, P, compare }: { R: SimResult; RO: SimResult;
           <tr className="grp">
             <th colSpan={3}></th><th colSpan={4}>Congés payés · jours ouvrables</th>
             <th colSpan={4} className={cls}>{C ? 'Année complète' : 'Année incomplète'}</th><th colSpan={2}></th>
-            {compare && <th colSpan={2} className={ocls}>{C ? 'Année incomplète' : 'Année complète'}</th>}
           </tr>
           <tr>
-            <th>Mois</th><th className="n">Jours de garde</th><th>Vacances</th><th className="n">Acquis</th><th className="n">Cumul</th><th className="n">Disponibles</th><th className="n">Pris</th>
+            <th>Mois</th><th className="n">Jours de garde</th><th>Congés</th><th className="n">Acquis</th><th className="n">Cumul</th><th className="n">Disponibles</th><th className="n">Pris</th>
             <th className={`n ${cls}`}>Salaire mensualisé</th><th className={`n ${cls}`}>Majorations</th>
             <th className={`n ${cls}`}>{C ? 'Retenue (jours de congés sans solde)' : 'Congés payés'}</th><th className={`n ${cls}`}>À verser</th>
             <th className="n">Entretien et repas</th><th className="n">Total du mois</th>
-            {compare && <><th className={`n ${ocls}`}>À verser</th><th className={`n ${ocls}`}>Écart cumulé</th></>}
           </tr>
         </thead>
         <tbody>{body}</tbody>
@@ -208,25 +197,24 @@ export function EndOfContract({ R }: { R: SimResult }) {
 }
 
 /* ---------- Onglets ---------- */
-export default function Results({ R, RO, P }: { R: SimResult; RO: SimResult; P: Params }) {
+export default function Results({ R, P, onPrint }: { R: SimResult; P: Params; onPrint: () => void }) {
   const [tab, setTab] = useState<'mois' | 'cp' | 'fin'>('mois');
-  const [compare, setCompare] = useState(false);
   const tabs = [['mois', 'Mois par mois'], ['cp', 'Congés payés'], ['fin', 'Fin de contrat']] as const;
   return (
     <>
-      <SummaryCards R={R} RO={RO} />
+      <SummaryCards R={R} />
+      <div className="tabbar">
       <div className="tabs" role="tablist">
         {tabs.map(([k, l]) => (
           <button key={k} type="button" className="tab" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
+        <button type="button" className="btn copper" onClick={onPrint}>Version imprimable</button>
+      </div>
       <div className="panes">
         {tab === 'mois' && (
           <section>
-            <div className="toolbar">
-              <label className="toggle"><input type="checkbox" id="compare" checked={compare} onChange={(e) => setCompare(e.target.checked)} /> Comparer avec l&apos;autre formule (année complète ou incomplète)</label>
-            </div>
-            <MonthTable R={R} RO={RO} P={P} compare={compare} />
+            <MonthTable R={R} P={P} />
           </section>
         )}
         {tab === 'cp' && (

@@ -3,10 +3,10 @@ import { DAY, Y } from './dates';
 export type HolidayKey =
   | 'jan' | 'paques' | 'mai1' | 'mai8' | 'asc' | 'pent' | 'jul14' | 'aou15' | 'nov1' | 'nov11' | 'noel';
 
-/** Jours fériés que les parents peuvent marquer comme travaillés (le lundi de Pentecôte a son propre réglage). */
+/** Jours fériés que les parents peuvent marquer comme travaillés (la journée de solidarité ne s'applique pas aux assistantes maternelles). */
 export const FERIES: [HolidayKey, string][] = [
   ['jan', '1er janvier'], ['paques', 'Lundi de Pâques'], ['mai1', '1er mai'], ['mai8', '8 mai'],
-  ['asc', "Jeudi de l'Ascension"], ['jul14', '14 juillet'], ['aou15', '15 août'],
+  ['asc', "Jeudi de l'Ascension"], ['pent', 'Lundi de Pentecôte'], ['jul14', '14 juillet'], ['aou15', '15 août'],
   ['nov1', '1er novembre'], ['nov11', '11 novembre'], ['noel', '25 décembre'],
 ];
 

@@ -36,7 +36,7 @@ export default function MentionsLegales() {
 
       <h2>Données personnelles</h2>
       <p>
-        Les informations saisies dans le simulateur (dates, horaires, salaire, vacances) sont traitées uniquement dans votre
+        Les informations saisies dans le simulateur (dates, horaires, salaire, congés) sont traitées uniquement dans votre
         navigateur. Elles ne sont ni transmises, ni enregistrées sur un serveur. Pour vous éviter de tout ressaisir, elles sont
         conservées dans le stockage local de votre navigateur ; vous pouvez les effacer à tout moment en vidant les données du site
         dans les réglages du navigateur.

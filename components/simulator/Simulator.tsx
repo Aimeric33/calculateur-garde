@@ -1,11 +1,15 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { EXAMPLE, analyse, buildParams, isComplete, simulate, type FormState } from '@/lib/engine';
-import FormPanel from './FormPanel';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  EXAMPLE, WEEKDAYS, analyse, buildParams, eur, fmtDate, hm, isComplete, simulate, weekHours, type FormState,
+} from '@/lib/engine';
+import { STEPS, stepError } from './Steps';
 import Results from './Results';
 import PrintSheet from './PrintSheet';
 
-const STORAGE_KEY = 'simulateur-nounou:v1';
+// v2 : nouvel exemple (contrat 2028-2030). Les paramètres enregistrés avec l'ancien exemple sont ignorés.
+const STORAGE_KEY = 'simulateur-nounou:v2';
+const DONE_KEY = 'simulateur-nounou:v2:done';
 const clone = (s: FormState): FormState => JSON.parse(JSON.stringify(s));
 
 function loadState(): FormState {
@@ -16,55 +20,178 @@ function loadState(): FormState {
   return clone(EXAMPLE);
 }
 
+type View = { mode: 'form'; step: number } | { mode: 'results' } | { mode: 'print' };
+
 export default function Simulator() {
   const [s, setS] = useState<FormState>(() => clone(EXAMPLE));
   const [ready, setReady] = useState(false);
-  const [printView, setPrintView] = useState(false);
+  const [view, setView] = useState<View>({ mode: 'form', step: 0 });
+  const [done, setDone] = useState(false); // le résultat a déjà été affiché une fois
+  const topRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
 
   // Paramètres mémorisés dans le navigateur du visiteur, jamais envoyés.
-  useEffect(() => { setS(loadState()); setReady(true); }, []);
+  // Un visiteur qui a déjà vu son résultat y revient directement.
+  useEffect(() => {
+    setS(loadState());
+    try { if (localStorage.getItem(DONE_KEY) === '1') { setDone(true); setView({ mode: 'results' }); } } catch { /* ignoré */ }
+    setReady(true);
+  }, []);
   useEffect(() => { if (ready) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* ignoré */ } } }, [s, ready]);
+  useEffect(() => { if (ready) { try { localStorage.setItem(DONE_KEY, done ? '1' : '0'); } catch { /* ignoré */ } } }, [done, ready]);
 
   const set = (p: Partial<FormState>) => setS((prev) => ({ ...prev, ...p }));
   const P = useMemo(() => buildParams(s), [s]);
   const A = useMemo(() => analyse(s, P), [s, P]);
+  const errors = useMemo(() => STEPS.map((_, k) => stepError(k, s, P)), [s, P]);
+  const firstError = errors.findIndex(Boolean);
   const sims = useMemo(() => {
-    if (A.blocking) return null;
+    if (A.blocking || firstError >= 0) return null;
     const F = isComplete(s) ? 'C' : 'I';
-    return { R: simulate(P, F), RO: simulate(P, F === 'C' ? 'I' : 'C') };
-  }, [s, P, A.blocking]);
+    return { R: simulate(P, F) };
+  }, [s, P, A.blocking, firstError]);
+
+  // Après un changement d'écran : on remonte en haut du simulateur et on place le focus sur le titre de l'étape
+  useEffect(() => {
+    if (!moved.current) return;
+    moved.current = false;
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    titleRef.current?.focus({ preventScroll: true });
+  }, [view]);
+  const go = (v: View) => { moved.current = true; setView(v); };
+  // Une étape n'est accessible que si toutes les précédentes sont valides
+  const reachable = (k: number) => errors.slice(0, k).every((e) => !e);
+  const showResults = () => {
+    if (firstError >= 0) return go({ mode: 'form', step: firstError });
+    setDone(true);
+    go({ mode: 'results' });
+  };
+  const reset = () => {
+    if (!window.confirm('Remplacer vos paramètres par ceux de l’exemple ?')) return;
+    setS(clone(EXAMPLE)); setDone(false); go({ mode: 'form', step: 0 });
+  };
+
+  const step = view.mode === 'form' ? view.step : -1;
+  const progress = (
+    <ol className="progress" aria-label="Étapes du simulateur">
+      {STEPS.map((st, k) => (
+        <li key={st.t}>
+          <button type="button" aria-current={step === k ? 'step' : undefined} data-done={(k < step || (step < 0 && done)) && !errors[k] ? '' : undefined}
+            disabled={!reachable(k)} onClick={() => go({ mode: 'form', step: k })}>
+            <span>{k + 1}</span><em>{st.t}</em>
+          </button>
+        </li>
+      ))}
+      <li>
+        <button type="button" aria-current={view.mode === 'results' ? 'step' : undefined} disabled={firstError >= 0} onClick={showResults}>
+          <span>✓</span><em>Le résultat</em>
+        </button>
+      </li>
+    </ol>
+  );
 
   return (
-    <div className="wrap">
+    <div className="wrap sim" ref={topRef}>
       <header className="top">
         <span className="eyebrow">Simulateur</span>
         <h1>Simulateur salaire <em>assistante maternelle</em></h1>
-        <p className="lead">Renseignez le contrat, le planning et les vacances : la simulation calcule le salaire mois par mois, les congés payés et ce qui est dû en fin de contrat. Les valeurs déjà remplies sont un exemple.</p>
-        <div className="viewbar">
-          {!printView
-            ? <button type="button" className="btn primary" onClick={() => setPrintView(true)} disabled={!sims}>Version imprimable</button>
-            : <>
-                <button type="button" className="btn" onClick={() => setPrintView(false)}>Retour au simulateur</button>
-                <button type="button" className="btn primary" onClick={() => window.print()}>Imprimer ou enregistrer en PDF</button>
-              </>}
-        </div>
+        {view.mode === 'form' && <p className="lead">Quatre étapes pour décrire le contrat, puis le salaire mois par mois. Les champs sont préremplis avec un exemple : remplacez-les par les informations de votre contrat.</p>}
+        {view.mode !== 'form' && (
+          <div className="viewbar">
+            {view.mode === 'results'
+              ? <>
+                  <button type="button" className="btn primary" onClick={() => go({ mode: 'form', step: 0 })}>Revenir à la première étape</button>
+                  <button type="button" className="btn" onClick={reset}>Recommencer avec l&apos;exemple</button>
+                </>
+              : <>
+                  <button type="button" className="btn" onClick={() => go({ mode: 'results' })}>Retour aux résultats</button>
+                  <button type="button" className="btn primary" onClick={() => window.print()}>Imprimer ou enregistrer en PDF</button>
+                </>}
+          </div>
+        )}
       </header>
 
-      {printView && sims ? (
-        <div id="printView"><div className="sheetwrap"><PrintSheet s={s} P={P} R={sims.R} /></div></div>
-      ) : (
-        <div className="layout">
-          <FormPanel s={s} set={set} P={P} A={A} onReset={() => setS(clone(EXAMPLE))} />
+      {view.mode === 'print' && sims && <div id="printView"><div className="sheetwrap"><PrintSheet s={s} P={P} R={sims.R} /></div></div>}
+
+      {view.mode === 'form' && (() => {
+        const st = STEPS[view.step];
+        const err = errors[view.step];
+        const alerts = A.alerts.filter((a) => a.step === view.step);
+        const last = view.step === STEPS.length - 1;
+        return (
+          <div className="wizard">
+            {progress}
+            <form className="wz-card" autoComplete="off" onSubmit={(e) => { e.preventDefault(); if (!err) (last ? showResults() : go({ mode: 'form', step: view.step + 1 })); }}>
+              <div className="wz-head">
+                <span className="wz-count">Étape {view.step + 1} sur {STEPS.length}</span>
+                <h2 ref={titleRef} tabIndex={-1}>{st.t}</h2>
+                <p>{st.intro}</p>
+              </div>
+              <div className="wz-body"><st.C s={s} set={set} P={P} A={A} /></div>
+              {(err || alerts.length > 0) && (
+                <div className="alerts" aria-live="polite">
+                  {err && <div className="alert"><b>À corriger.</b> {err}</div>}
+                  {alerts.map((a) => <div className="alert" key={a.title}><b>{a.title}</b> {a.text}</div>)}
+                </div>
+              )}
+              <div className="wz-foot">
+                <p className="preview" aria-live="polite">
+                  {sims
+                    ? <>Salaire mensualisé estimé : <b>{eur(sims.R.full)}</b> par mois · {sims.R.F === 'C' ? 'année complète' : `année incomplète, ${sims.R.weeks} semaines`}</>
+                    : 'Complétez les étapes pour voir l’estimation.'}
+                </p>
+                <div className="btns">
+                  {view.step > 0 && <button type="button" className="btn" onClick={() => go({ mode: 'form', step: view.step - 1 })}>Précédent</button>}
+                  {done && !last && <button type="button" className="btn" disabled={!!err} onClick={showResults}>Voir le résultat</button>}
+                  <button type="submit" className="btn primary" disabled={!!err}>{last ? 'Voir le résultat' : 'Étape suivante'}</button>
+                </div>
+              </div>
+            </form>
+            {view.step === 0 && !done && (
+              <p className="wz-skip">Envie de voir d&apos;abord à quoi ressemble le résultat ? <button type="button" className="linkbtn" onClick={showResults}>Voir directement le résultat</button></p>
+            )}
+          </div>
+        );
+      })()}
+
+      {view.mode === 'results' && (
+        <div className="sim-results">
+          {progress}
+          <Recap s={s} onEdit={(k) => go({ mode: 'form', step: k })} />
           <section className="results" aria-live="polite">
-            <div className="alerts">
-              {A.blocking && <div className="alert"><b>À corriger.</b> {A.blocking}</div>}
-              {A.alerts.map((a) => <div className="alert" key={a.title}><b>{a.title}</b> {a.text}</div>)}
-            </div>
-            {sims && <Results R={sims.R} RO={sims.RO} P={P} />}
+            {A.alerts.length > 0 && <div className="alerts">{A.alerts.map((a) => <div className="alert" key={a.title}><b>{a.title}</b> {a.text}</div>)}</div>}
+            {sims && <Results R={sims.R} P={P} onPrint={() => go({ mode: 'print' })} />}
             <footer>Simulation indicative, fondée sur la convention collective des particuliers employeurs (IDCC 3239). Les jours fériés chômés sont payés. Montants nets. Pour un cas particulier, demandez confirmation au Relais Petite Enfance ou à Pajemploi.</footer>
           </section>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Récapitulatif des quatre étapes, chacune avec un lien pour la modifier. */
+function Recap({ s, onEdit }: { s: FormState; onEdit: (k: number) => void }) {
+  const P = buildParams(s);
+  const days = (w: FormState['days']) => WEEKDAYS.filter(([i]) => w[i][0]).length;
+  const lines: string[][] = [
+    [`Du ${fmtDate(P.start)} au ${fmtDate(P.end)}`, `${eur(s.rate)} net de l'heure`],
+    [
+      `${hm(weekHours(s.days))} par semaine sur ${days(s.days)} jours`,
+      P.phases.length > 1 ? `Puis ${hm(weekHours(s.chg.days))} à partir du ${fmtDate(P.phases[1].from)}` : `Majoration au-delà de 45 h : ${s.maj} %`,
+    ],
+    [`${s.vacWeeks} semaines par an`, isComplete(s) ? 'Année complète' : `Année incomplète, ${P.weeksI} semaines d'accueil`],
+    [`Entretien : ${eur(s.ent)} par jour`, s.meal > 0 ? `Repas : ${eur(s.meal)} par jour` : 'Repas : fournis par vous'],
+  ];
+  return (
+    <div className="recap">
+      {STEPS.map((st, k) => (
+        <div className="recap-card" key={st.t}>
+          <div className="recap-h"><span>{k + 1}</span>{st.t}</div>
+          {lines[k].map((l) => <p key={l}>{l}</p>)}
+          <button type="button" className="linkbtn" onClick={() => onEdit(k)} aria-label={`Modifier : ${st.t}`}>Modifier</button>
+        </div>
+      ))}
     </div>
   );
 }

@@ -68,7 +68,7 @@ export default function PrintSheet({ s, P, R }: { s: FormState; P: Params; R: Si
             </Fragment>
           );
         })}
-        <div><b>Vacances</b>{s.vacWeeks} sem./an dont 5 de congés payés</div>
+        <div><b>Congés</b>{s.vacWeeks} sem./an dont 5 de congés payés</div>
         <div><b>Entretien</b>{eur(P.ent)} / jour{P.meal > 0 && ` · repas ${eur(P.meal)} / jour`}</div>
       </div>
 
@@ -77,7 +77,7 @@ export default function PrintSheet({ s, P, R }: { s: FormState; P: Params; R: Si
         <thead>
           <tr className="grp"><th colSpan={4}></th><th colSpan={4}>Congés payés · jours ouvrables</th><th colSpan={4} className={k}>Salaire</th><th colSpan={2}></th></tr>
           <tr>
-            <th>Mois</th><th className="n">Jours de garde</th><th className="n">Heures faites × taux</th><th>Vacances</th>
+            <th>Mois</th><th className="n">Jours de garde</th><th className="n">Heures faites × taux</th><th>Congés</th>
             <th className="n">Acquis</th><th className="n">Cumul</th><th className="n">Disponibles</th><th className="n">Pris</th>
             <th className={`n ${k}`}>Salaire mensualisé</th><th className={`n ${k}`}>Majorations</th>
             <th className={`n ${k}`}>{C ? 'Retenue (jours de congés sans solde)' : 'Congés payés'}</th><th className={`n ${k}`}>À verser</th>

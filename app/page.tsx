@@ -24,7 +24,7 @@ const fin = R.iccp + R.reg + R.rupture;
 const shortDate = (n: number) => `${DD(n)} ${MOIS[M(n) - 1]}`;
 const hhmm = (t: string) => t.replace(':', 'h');
 
-// Semaines de l'année affichée (à partir de son premier lundi) : accueil ou vacances
+// Semaines de l'année affichée (à partir de son premier lundi) : accueil ou congés
 const jan1 = dayOf(YR, 1, 1);
 const monday0 = jan1 + ((8 - wd(jan1)) % 7);
 const weeks = Array.from({ length: 52 }, (_, i) => {
@@ -64,10 +64,10 @@ const STEPS: HowStep[] = [
     },
   },
   {
-    t: 'Les vacances',
+    t: 'Les congés',
     d: 'Le nombre de semaines sans accueil par an et leurs dates. Le type de contrat, année complète ou incomplète, en est déduit.',
     panel: {
-      title: `Les vacances en ${YR}`, tag: 'Étape 3',
+      title: `Les congés en ${YR}`, tag: 'Étape 3',
       rows: P.vac.filter((v) => Y(v.a) === YR).slice(0, 5).map((v) => ({
         k: `${shortDate(v.a)} → ${shortDate(v.b)}`, v: '', tag: `${Math.ceil((v.b - v.a + 1) / 7)} sem.`,
       })),
@@ -88,7 +88,7 @@ const STEPS: HowStep[] = [
 const FAQ = [
   {
     q: 'Année complète ou année incomplète : comment savoir ?',
-    a: "Tout dépend des semaines où votre enfant n'est pas accueilli. Si vos vacances ne dépassent pas les 5 semaines de congés payés de l'assistante maternelle, c'est une année complète : le salaire est mensualisé sur 52 semaines. Au-delà, c'est une année incomplète : il est calculé sur les seules semaines d'accueil. Le simulateur le déduit du nombre de semaines de vacances que vous indiquez.",
+    a: "Tout dépend des semaines où votre enfant n'est pas accueilli. Si vos congés ne dépassent pas les 5 semaines de congés payés de l'assistante maternelle, c'est une année complète : le salaire est mensualisé sur 52 semaines. Au-delà, c'est une année incomplète : il est calculé sur les seules semaines d'accueil. Le simulateur le déduit du nombre de semaines de congés que vous indiquez.",
   },
   {
     q: 'Comment sont payés les congés payés en année incomplète ?',
@@ -131,7 +131,7 @@ export default function Home() {
           <div className="hero-copy">
             <span className="eyebrow">Simulateur gratuit · convention IDCC 3239</span>
             <h1>Le salaire de votre assistante maternelle, <em>calculé mois par mois.</em></h1>
-            <p className="lead">Entrez le contrat, le planning et les vacances. Salaire mensualisé, congés payés et fin de contrat sont calculés et expliqués, ligne par ligne.</p>
+            <p className="lead">Entrez le contrat, le planning et les congés. Salaire mensualisé, congés payés et fin de contrat sont calculés et expliqués, ligne par ligne.</p>
             <div className="ctas">
               <Link href="/simulateur/" className="btn primary big">Faire une simulation</Link>
               <a href="#fonctionnement" className="btn big">Comment ça marche</a>
@@ -196,11 +196,11 @@ export default function Home() {
           <Bento>
             <article className="fcard">
               <h3>Année complète ou incomplète</h3>
-              <p>Le type de contrat est déduit des semaines de vacances. Le salaire est mensualisé sur 52 semaines ou sur les semaines d&apos;accueil.</p>
+              <p>Le type de contrat est déduit des semaines de congés. Le salaire est mensualisé sur 52 semaines ou sur les semaines d&apos;accueil.</p>
               <div className="demo" aria-hidden="true">
                 <div className="demo-h">Année {YR}<span className="tag">Année incomplète</span></div>
                 <div className="weeks">{weeks.map((v, i) => <i key={i} className={v ? "v" : undefined} style={d(i)} />)}</div>
-                <div className="legend"><span>Accueil · {R.weeks} sem.</span><span className="v">Vacances · {EXAMPLE.vacWeeks} sem.</span></div>
+                <div className="legend"><span>Accueil · {R.weeks} sem.</span><span className="v">Congés · {EXAMPLE.vacWeeks} sem.</span></div>
                 <div className="formula">{num(R.H)} h × {R.weeks} sem. ÷ 12 × {eur(EXAMPLE.rate)} = <b>{eur(R.full)} par mois</b></div>
               </div>
             </article>
@@ -222,7 +222,7 @@ export default function Home() {
 
             <article className="fcard">
               <h3>Heures majorées et jours fériés</h3>
-              <p>Heures au-delà de 45 h payées chaque mois au réel, jours fériés travaillés majorés, 1er mai, lundi de Pentecôte.</p>
+              <p>Heures au-delà de 45 h payées chaque mois au réel, jours fériés travaillés majorés, 1er mai payé double.</p>
               <div className="demo" aria-hidden="true">
                 <div className="plan" data-scan>
                   {plan.map((p, i) => (

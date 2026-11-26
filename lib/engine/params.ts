@@ -1,7 +1,7 @@
 import { toN, wd, M, Y, dayOf } from './dates';
 import { eur, hm, num } from './format';
 import type { HolidayKey } from './holidays';
-import { mkPhase, type CpMode, type Params, type PentMode, type Plan } from './simulate';
+import { mkPhase, type CpMode, type Params, type Plan } from './simulate';
 
 /** Un jour du planning : [coché, arrivée, départ] */
 export type DaySlot = [boolean, string, string];
@@ -14,7 +14,7 @@ export interface FormState {
   chg: { on: boolean; date: string; rate: number; days: WeekPlan };
   vacWeeks: number;
   vac: [string, string][];
-  cpMode: CpMode; ferTrav: HolidayKey[]; ferMaj: number; pent: PentMode;
+  cpMode: CpMode; ferTrav: HolidayKey[]; ferMaj: number;
   ent: number; meal: number; ratio: number;
 }
 
@@ -25,7 +25,7 @@ const fullWeek = (): WeekPlan => ({
   4: [true, '08:30', '18:00'], 5: [true, '08:30', '18:00'], 6: [false, '08:30', '12:30'],
 });
 
-/** Exemple affiché au premier chargement : 42 h par semaine, 8 semaines de vacances par an (année incomplète). */
+/** Exemple affiché au premier chargement : 42 h par semaine, 8 semaines de congés par an (année incomplète). */
 export const EXAMPLE: FormState = {
   start: '2028-01-03', end: '2030-08-31', rate: 4, maj: 10,
   days: fullWeek(),
@@ -38,7 +38,7 @@ export const EXAMPLE: FormState = {
     ['2029-10-22', '2029-10-27'], ['2029-12-24', '2030-01-05'], ['2030-02-18', '2030-02-23'], ['2030-04-15', '2030-04-20'],
     ['2030-08-05', '2030-08-24'],
   ],
-  cpMode: 'juin', ferTrav: [], ferMaj: 10, pent: 'chome',
+  cpMode: 'juin', ferTrav: [], ferMaj: 10,
   ent: 4.5, meal: 0, ratio: 78.12,
 };
 
@@ -62,13 +62,14 @@ export function buildParams(s: FormState): Params {
     start: toN(s.start), end: toN(s.end), phases, weeksI: 52 - s.vacWeeks,
     vac: s.vac.map(([a, b]) => ({ a: toN(a), b: toN(b) })).filter((v) => !isNaN(v.a) && !isNaN(v.b) && v.b >= v.a),
     ent: s.ent, meal: s.meal, ratio: s.ratio || 78.12, maj: s.maj || 0,
-    cpMode: s.cpMode, ferTrav: s.ferTrav, ferMaj: s.ferMaj, pent: s.pent,
+    cpMode: s.cpMode, ferTrav: s.ferTrav, ferMaj: s.ferMaj,
   };
 }
 
 export interface Analysis {
   blocking: string | null;   // erreur qui empêche le calcul
-  alerts: { title: string; text: string }[];
+  /** step : étape du formulaire concernée (0 contrat, 1 planning, 2 congés, 3 indemnités) */
+  alerts: { title: string; text: string; step: number }[];
   chips: { label: string; bad: boolean }[];
   entMin: number; maxDay: number;
 }
@@ -82,16 +83,16 @@ export function analyse(s: FormState, P: Params): Analysis {
   if (isNaN(P.start) || isNaN(P.end) || P.end <= P.start) return { blocking: 'La date de fin doit être après la date de début.', ...empty };
   if (P.phases.some((ph) => !ph.H)) return { blocking: `Cochez au moins un jour de garde avec ses horaires${s.chg.on ? ' dans chaque planning' : ''}.`, ...empty };
 
-  if (s.chg.on && P.phases.length < 2) alerts.push({ title: 'Date du changement de planning à vérifier.', text: 'Elle doit tomber entre le début et la fin du contrat.' });
-  if (Math.min(...P.phases.map((ph) => ph.rate)) < MIN_RATE_NET) alerts.push({ title: 'Salaire horaire sous le minimum.', text: `Le minimum est de ${eur(MIN_RATE_NET)} net de l'heure.` });
-  if (s.ent > 0 && s.ent < entMin - 0.005) alerts.push({ title: 'Entretien sous le minimum.', text: `Pour une journée de ${hm(maxDay)}, il faut au moins ${eur(entMin)}.` });
+  if (s.chg.on && P.phases.length < 2) alerts.push({ step: 1, title: 'Date du changement de planning à vérifier.', text: 'Elle doit tomber entre le début et la fin du contrat.' });
+  if (Math.min(...P.phases.map((ph) => ph.rate)) < MIN_RATE_NET) alerts.push({ step: 0, title: 'Salaire horaire sous le minimum.', text: `Le minimum est de ${eur(MIN_RATE_NET)} net de l'heure.` });
+  if (s.ent > 0 && s.ent < entMin - 0.005) alerts.push({ step: 3, title: 'Entretien sous le minimum.', text: `Pour une journée de ${hm(maxDay)}, il faut au moins ${eur(entMin)}.` });
   const H = Math.max(...P.phases.map((ph) => ph.H));
-  if (H > 45 && s.maj < 10) alerts.push({ title: 'Majoration trop faible.', text: 'Les heures au-delà de 45 h doivent être majorées d\'au moins 10 %.' });
-  if (H > 50) alerts.push({ title: 'Plus de 50 h par semaine.', text: 'La durée de travail d\'une assistante maternelle ne peut pas dépasser 48 h en moyenne sur 4 mois, ni 50 h par semaine.' });
-  if (s.ferTrav.length && s.ferMaj < 10) alerts.push({ title: 'Majoration des fériés trop faible.', text: 'Un jour férié travaillé doit être majoré d\'au moins 10 %.' });
-  if (s.ferTrav.includes('mai1')) alerts.push({ title: '1er mai travaillé.', text: 'Il ne peut être travaillé qu\'à titre exceptionnel et doit être prévu au contrat. Il est payé double.' });
+  if (H > 45 && s.maj < 10) alerts.push({ step: 1, title: 'Majoration trop faible.', text: 'Les heures au-delà de 45 h doivent être majorées d\'au moins 10 %.' });
+  if (H > 50) alerts.push({ step: 1, title: 'Plus de 50 h par semaine.', text: 'La durée de travail d\'une assistante maternelle ne peut pas dépasser 48 h en moyenne sur 4 mois, ni 50 h par semaine.' });
+  if (s.ferTrav.length && s.ferMaj < 10) alerts.push({ step: 2, title: 'Majoration des fériés trop faible.', text: 'Un jour férié travaillé doit être majoré d\'au moins 10 %.' });
+  if (s.ferTrav.includes('mai1')) alerts.push({ step: 2, title: '1er mai travaillé.', text: 'Il ne peut être travaillé qu\'à titre exceptionnel et doit être prévu au contrat. Il est payé double.' });
 
-  // Semaines de vacances saisies par période de référence (juin → mai)
+  // Semaines de congés saisies par période de référence (juin → mai)
   const phAt = (n: number) => { let k = P.phases[0]; for (const ph of P.phases) if (n >= ph.from) k = ph; return k; };
   const perY: Record<number, number> = {};
   for (let n = P.start; n <= P.end; n++) {
@@ -105,7 +106,7 @@ export function analyse(s: FormState, P: Params): Analysis {
     const fullYear = dayOf(p - 1, 6, 1) >= P.start && dayOf(p, 5, 31) <= P.end;
     const bad = fullYear && Math.abs(w - s.vacWeeks) > 0.6;
     chips.push({ label: `${p - 1}-${p} : ${num(w, 1)} sem. saisies${fullYear ? ` / ${s.vacWeeks} prévues` : ''}`, bad });
-    if (bad) alerts.push({ title: `Vacances ${p - 1}-${p} :`, text: `${num(w, 1)} semaines saisies alors que le contrat en prévoit ${s.vacWeeks}. La régularisation de fin de contrat corrigera l'écart, mais vérifiez les dates.` });
+    if (bad) alerts.push({ step: 2, title: `Congés ${p - 1}-${p} :`, text: `${num(w, 1)} semaines saisies alors que le contrat en prévoit ${s.vacWeeks}. La régularisation de fin de contrat corrigera l'écart, mais vérifiez les dates.` });
   }
   return { blocking: null, alerts, chips, entMin, maxDay };
 }

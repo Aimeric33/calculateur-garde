@@ -17,7 +17,6 @@ import { eur, num } from './format';
 
 export type Formula = 'C' | 'I';            // année complète / incomplète
 export type CpMode = 'juin' | 'principal' | 'prise';
-export type PentMode = 'chome' | 'solid' | 'trav';
 
 /** Heures prévues par jour de la semaine (index 0 = dimanche … 6 = samedi). */
 export type Plan = number[];
@@ -49,7 +48,6 @@ export interface Params {
   cpMode: CpMode;
   ferTrav: HolidayKey[];
   ferMaj: number;
-  pent: PentMode;
 }
 
 export interface MonthRow {
@@ -89,7 +87,7 @@ export function simulate(P: Params, F: Formula): SimResult {
   const phOf = (n: number) => PH[phIdx(n)];
   const hrs = (n: number) => phOf(n).plan[wd(n)] || 0;
   const isVac = (n: number) => P.vac.some((v) => n >= v.a && n <= v.b);
-  const ferWorked = (n: number) => { const k = holidayKey(n); if (!k) return false; return k === 'pent' ? P.pent !== 'chome' : P.ferTrav.includes(k); };
+  const ferWorked = (n: number) => { const k = holidayKey(n); return !!k && P.ferTrav.includes(k); };
   const isHolC = (n: number) => isHoliday(n) && !ferWorked(n); // férié chômé
 
   // Heures majorées réellement faites (au-delà de 45 h, semaine du lundi au dimanche)
@@ -183,7 +181,6 @@ export function simulate(P: Params, F: Formula): SimResult {
     let ferPay = 0; const ferLines: string[] = [];
     for (const n of garde.filter(isHoliday)) {
       const k = holidayKey(n), h = hrs(n), r = phOf(n).rate;
-      if (k === 'pent' && P.pent === 'solid') { ferLines.push('lun. de Pentecôte : journée de solidarité, non majorée'); continue; }
       const t = k === 'mai1' ? 100 : P.ferMaj;
       ferPay += (h * r * t) / 100;
       ferLines.push(`${k === 'mai1' ? '1er mai' : `${JOURS[wd(n)]} ${DD(n)} férié`} : ${num(h)} h × ${eur(r)} × ${num(t)} %`);
