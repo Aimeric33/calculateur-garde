@@ -13,6 +13,7 @@ export default function SiteFooter() {
         <nav className="f-col" aria-label="Simulateur">
           <b>Simulateur</b>
           <Link href="/simulateur/">Faire une simulation</Link>
+          <Link href="/#calcul">Ce qui est calculé</Link>
           <Link href="/#fonctionnement">Comment ça marche</Link>
           <Link href="/#faq">Questions fréquentes</Link>
         </nav>

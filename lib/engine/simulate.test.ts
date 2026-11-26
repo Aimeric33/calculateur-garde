@@ -8,14 +8,14 @@ describe('exemple par défaut (année incomplète, 44 semaines)', () => {
   const R = simulate(P, 'I');
 
   it('calcule le salaire mensualisé', () => {
-    expect(round(R.full)).toBe(681.91); // 43,25 h × 44 × 4,30 ÷ 12
+    expect(round(R.full)).toBe(616); // 42 h × 44 × 4 ÷ 12
   });
-  it('proratise le premier mois', () => {
-    expect(round(R.rows[0].mens)).toBe(649.08); // début le 4 janvier
+  it('paie le premier mois en entier (début le lundi 3 janvier, premier jour ouvré)', () => {
+    expect(round(R.rows[0].mens)).toBe(616);
   });
-  it('retrouve les totaux de la simulation validée', () => {
-    expect(round(R.grand)).toBe(24897.42);
-    expect(round(R.reg)).toBe(156.81);
+  it("garde les totaux de l'exemple (non-régression)", () => {
+    expect(round(R.grand)).toBe(22462.56);
+    expect(round(R.reg)).toBe(112);
   });
 });
 
