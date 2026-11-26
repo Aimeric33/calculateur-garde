@@ -37,7 +37,8 @@ export default function Simulator() {
   return (
     <div className="wrap">
       <header className="top">
-        <h1>Simulateur salaire assistante maternelle</h1>
+        <span className="eyebrow">Simulateur</span>
+        <h1>Simulateur salaire <em>assistante maternelle</em></h1>
         <p className="lead">Renseignez le contrat, le planning et les vacances : la simulation calcule le salaire mois par mois, les congés payés et ce qui est dû en fin de contrat. Les valeurs déjà remplies sont un exemple.</p>
         <div className="viewbar">
           {!printView

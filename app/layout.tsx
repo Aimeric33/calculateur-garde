@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from 'next';
-import { Bricolage_Grotesque, Figtree } from 'next/font/google';
+import { Inter, Inter_Tight } from 'next/font/google';
 import './globals.css';
-
-// Polices auto-hébergées au build (plus d'appel à Google Fonts depuis le navigateur du visiteur).
-const display = Bricolage_Grotesque({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-display', display: 'swap' });
-const body = Figtree({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body', display: 'swap' });
 import { SITE } from '@/lib/site';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
+
+// Polices auto-hébergées au build (aucun appel à Google Fonts depuis le navigateur du visiteur).
+const display = Inter_Tight({ subsets: ['latin'], weight: ['300', '400', '500', '600'], variable: '--font-display', display: 'swap' });
+const body = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-body', display: 'swap' });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#fdfdfb',
+  themeColor: '#faf8f4',
   colorScheme: 'light',
 };
 

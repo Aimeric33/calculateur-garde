@@ -13,7 +13,8 @@ const Todo = ({ children }: { children: React.ReactNode }) => <span className="t
 export default function MentionsLegales() {
   return (
     <article className="prose">
-      <h1>Mentions légales</h1>
+      <span className="eyebrow">Informations</span>
+      <h1>Mentions <em>légales</em></h1>
 
       <h2>Éditeur du site</h2>
       <p>
