@@ -633,3 +633,7 @@ fieldset.field legend{padding:0;margin-bottom:2px}
 .scrollx-top>div{height:1px}
 .scrollx-top,.tablewrap{scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
 @media print{.scrollx-top{display:none!important}}
+/* Colonnes de grille bornées à la largeur disponible : sans ça, la colonne implicite s'élargit
+   au contenu le plus large (onglets, tableau) et la page déborde à droite sur mobile */
+.wrap,.sim-results,.results,.wizard{grid-template-columns:minmax(0,1fr)}
+@media (max-width:520px){.tabbar .tabs{width:100%}.tabbar .tab{flex:1;padding:8px 6px;font-size:13px}.tabbar .btn.copper{width:100%}}

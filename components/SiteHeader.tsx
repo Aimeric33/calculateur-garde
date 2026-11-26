@@ -34,10 +34,18 @@ export default function SiteHeader() {
   }, [open]);
 
   const close = () => setOpen(false);
+  // Logo : déjà sur l'accueil, le lien ne naviguerait pas (même adresse) ; on remonte en haut et on retire l'ancre éventuelle
+  const goHome = (e: React.MouseEvent) => {
+    close();
+    if (path !== '/') return;
+    e.preventDefault();
+    if (location.hash) history.replaceState(null, '', '/');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   return (
     <header className={'site-header' + (open ? ' open' : '')}>
       <div className="in">
-        <Link href="/" className="brand" onClick={close}><Logo /> {SITE.name}</Link>
+        <Link href="/" className="brand" onClick={goHome}><Logo /> {SITE.name}</Link>
         <button
           type="button"
           className="burger"
